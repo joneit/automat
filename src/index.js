@@ -4,8 +4,22 @@
 
 var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)\s*\{\s*\/\*\s*([^]+?)\s*\*\/\s*\s*}$/;
 
+/**
+ * @summary Finds string substitution lexemes that require HTML encoding.
+ * @desc Modify to suit.
+ * @default %{n}
+ * @type {RegExp}
+ * @name encodersRegex
+ */
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
+/**
+ * @summary Finds string substitution lexemes.
+ * @desc Modify to suit.
+ * @default ${n}
+ * @type {RegExp}
+ * @name replacersRegex
+ */
 var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
 
 
@@ -70,8 +84,6 @@ function automat(template, replacements/*...*/) {
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
  * @return {HTMLElement} The `el` provided or a new `<div>...</div>` element, its `innerHTML` set to the formatted text.
- *
- * @memberOf automat
  */
 function replace(template, el, replacements/*...*/) {
     var elOmitted = typeof el !== 'object',
@@ -101,8 +113,6 @@ function replace(template, el, replacements/*...*/) {
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
  * @returns {HTMLElement}
- *
- * @memberOf automat
  */
 function append(template, el, referenceNode, replacements/*...*/) {
     var replacementsStartAt = 3,
@@ -130,31 +140,16 @@ function append(template, el, referenceNode, replacements/*...*/) {
  * @param {string|function} template - If a function, extract template from comment within.
  *
  * @returns {HTMLElement} A new `<div>...</div>` element, its `innerHTML` set to the formatted text.
- *
- * @memberOf automat
  */
 function firstChild(template, replacements/*...*/) {
     return replace.apply(null, arguments).firstChild;
 }
 
-/**
- * @summary Finds string substitution lexemes that require HTML encoding.
- * @desc Modify to suit.
- * @default %{n}
- * @type {RegExp}
- * @memberOf automat
- */
+// properties:
 automat.encodersRegex = ENCODERS;
-
-/**
- * @summary Finds string substitution lexemes.
- * @desc Modify to suit.
- * @default ${n}
- * @type {RegExp}
- * @memberOf automat
- */
 automat.replacersRegex = REPLACERS;
 
+// methods:
 automat.format = automat; // if you find using just `automat()` confusing
 automat.replace = replace;
 automat.append = append;
