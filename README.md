@@ -21,7 +21,7 @@ See tests.
 
 ### API documentation
 
-Detailed API docs can be found [here](http://joneit.github.io/automat/automat.html).
+Detailed API docs can be found [here](http://joneit.github.io/automat).
 
 ### Demo
 

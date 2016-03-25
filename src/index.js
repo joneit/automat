@@ -5,7 +5,7 @@
 var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)\s*\{\s*\/\*\s*([^]+?)\s*\*\/\s*\s*}$/;
 
 /**
- * @summary Finds string substitution lexemes that require HTML encoding.
+ * @summary Finds string substitution directives that require HTML encoding.
  * @desc Modify to suit.
  * @default %{n}
  * @type {RegExp}
@@ -14,7 +14,7 @@ var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
 /**
- * @summary Finds string substitution lexemes.
+ * @summary Finds string substitution directives.
  * @desc Modify to suit.
  * @default ${n}
  * @type {RegExp}
