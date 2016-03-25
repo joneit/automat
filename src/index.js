@@ -2,7 +2,7 @@
 
 'use strict';
 
-var extract = /\/\*\s+([^]+?)\s+\*\//; // finds the string inside the /* ... */; the group excludes the whitespace
+var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)\s*\{\s*\/\*\s*([^]+?)\s*\*\/\s*\s*}$/;
 
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
@@ -18,32 +18,37 @@ var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
  *
  * To change the format patterns, assign new `RegExp` patterns to `automat.encoders` and `automat.replacers`.
  *
- * @param {string} text - A simple text string to be formatted and returned as described above.
- * * A "template" (function) as described above. The text is extracted and returned in `HTMLElement` provided in `node` or in a new `<div>...</div>` element if `node` was omitted.
+ * @param {string|function} template - A template to be formatted as described above. Overloads:
+ * * A string primitive containing the template.
+ * * A "template" function, which is a function consisting entirely of a single multi-line comment containing the template. The template is extracted from the comment.
+ * * A (non-template) function to be called with `this` as the calling context. The template is the value returned from this call.
  *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
- * @return {string|HTMLElement} Depends on `node`:
- * * If omitted, formatted text is returned as a string.
- * * If an `HTMLElement`, its `innerHTML` is set to the formatted text and this element is returned instead of the text string.
+ * @return {string} The formatted text.
  */
-function automat(format, replacements/*...*/) {
-    var args = arguments;
+function automat(template, replacements/*...*/) {
+    var hasReplacements = arguments.length > 1;
 
-    if (typeof format === 'function') {
-        format = format.toString().match(extract)[1];
+    // if `template` is a function, convert it to text
+    if (typeof template === 'function') {
+        var format = template.toString().match(FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT);
+        template = format
+            ? format[1] // template function: extract text from comment
+            : template.call(this); // non-template function: call it with context and use return value
     }
 
-    if (args.length > 1) {
-        format = format.replace(automat.replacersRegex, function(match, key) {
+    if (hasReplacements) {
+        var args = arguments;
+        template = template.replace(automat.replacersRegex, function(match, key) {
             key -= -1; // convert to number and increment
             return args.length > key ? args[key] : '';
         });
 
-        format = format.replace(automat.encodersRegex, function(match, key) {
+        template = template.replace(automat.encodersRegex, function(match, key) {
             key -= -1; // convert to number and increment
             if (args.length > key) {
-                var htmlEncoderNode = htmlEncoderNode || document.createElement('DIV');
+                var htmlEncoderNode = document.createElement('DIV');
                 htmlEncoderNode.textContent = args[key];
                 return htmlEncoderNode.innerHTML;
             } else {
@@ -52,57 +57,65 @@ function automat(format, replacements/*...*/) {
         });
     }
 
-    return format;
+    return template;
 }
 
 /**
  * @summary Replace contents of `el` with `Nodes` generated from formatted template.
  *
- * A "template" is a JavaScript function whose body consists entirely of a single multi-line JavaScript comment containing (presumably) HTML -- which is extracted, ignoring any White space surrounding the comment delimiters.
- *
- * String substitution is performed on numbered _replacer_ patterns like `${n}` or _encoder_ patterns like `%{n}` where n is the zero-based `arguments` index. So `${0}` would be replaced with the first argument following `text` (or `element` if given).
- *
- * Encoders are just like replacers except the argument is HTML-encoded before being used.
- *
- * To change the format patterns, assign new `RegExp` patterns to `automat.encoders` and `automat.replacers`.
+ * @param {string|function} template - See `template` parameter of {@link automat}.
  *
  * @param {HTMLElement} [el] - Node in which to return markup generated from template. If omitted, a new `<div>...</div>` element will be created and returned.
  *
- * @param {string|function} template - If a function, extract template from comment within.
- *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
- * @return {HTMLElement} The `HTMLElement` provided or a new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ * @return {HTMLElement} The `el` provided or a new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ *
+ * @memberOf automat
  */
-function replace(el, template, replacements/*...*/) {
-    var asMarkup = el instanceof HTMLElement,
-        args = asMarkup ? Array.prototype.slice.call(arguments, 1) : arguments;
+function replace(template, el, replacements/*...*/) {
+    var elOmitted = typeof el !== 'object',
+        args = Array.prototype.slice.call(arguments, 1);
 
-    if (!asMarkup) {
+    if (elOmitted) {
         el = document.createElement('DIV');
+        args.unshift(template);
+    } else {
+        args[0] = template;
     }
 
     el.innerHTML = automat.apply(null, args);
+
     return el;
 }
 
 /**
  * @summary Append or insert `Node`s generated from formatted template into given `el`.
- * @param {Node} [referenceNode=null] Inserts before this element within `el` or at end of `el` if `null`.
+ *
+ * @param {string|function} template - See `template` parameter of {@link automat}.
+ *
  * @param {HTMLElement} el
- * @param {string|function} template - If a function, extract template from comment within.
+ *
+ * @param {Node} [referenceNode=null] Inserts before this element within `el` or at end of `el` if `null`.
+ *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
+ *
  * @returns {HTMLElement}
+ *
+ * @memberOf automat
  */
-function append(referenceNode, el, template, replacements/*...*/) {
-    var referenceNodeOmitted = !(el instanceof HTMLElement),
-        args = Array.prototype.slice.call(arguments, referenceNodeOmitted ? 1 : 2),
-        childNodes = replace.apply(null, args).childNodes;
+function append(template, el, referenceNode, replacements/*...*/) {
+    var replacementsStartAt = 3,
+        referenceNodeOmitted = typeof referenceNode !== 'object',  // replacements are never objects
+        childNodes;
 
     if (referenceNodeOmitted) {
-        el = referenceNode;
         referenceNode = null;
+        replacementsStartAt = 2;
     }
+
+    replacements = Array.prototype.slice.call(arguments, replacementsStartAt);
+    childNodes = replace.apply(null, [template].concat(replacements)).childNodes;
 
     for (var i = 0; i < childNodes.length; ++i) {
         el.insertBefore(childNodes[i], referenceNode);
@@ -113,17 +126,36 @@ function append(referenceNode, el, template, replacements/*...*/) {
 
 /**
  * Use this convenience wrapper to return the first child described in `html`.
+ *
  * @param {string|function} template - If a function, extract template from comment within.
+ *
  * @returns {HTMLElement} A new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ *
+ * @memberOf automat
  */
-function firstChild(html, replacements/*...*/) {
+function firstChild(template, replacements/*...*/) {
     return replace.apply(null, arguments).firstChild;
 }
 
+/**
+ * @summary Finds string substitution lexemes that require HTML encoding.
+ * @desc Modify to suit.
+ * @default %{n}
+ * @type {RegExp}
+ * @memberOf automat
+ */
 automat.encodersRegex = ENCODERS;
+
+/**
+ * @summary Finds string substitution lexemes.
+ * @desc Modify to suit.
+ * @default ${n}
+ * @type {RegExp}
+ * @memberOf automat
+ */
 automat.replacersRegex = REPLACERS;
 
-automat.format = automat; // if you find using just automat() confusing
+automat.format = automat; // if you find using just `automat()` confusing
 automat.replace = replace;
 automat.append = append;
 automat.firstChild = firstChild;

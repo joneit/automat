@@ -25,7 +25,7 @@ gulp.task('build', function(callback) {
     clearBashScreen();
     runSequence(
         'lint',
-        //'test',
+        'test',
         //'doc',
         'enclose', //'browserify',
         callback
