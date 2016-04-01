@@ -26,7 +26,7 @@ gulp.task('build', function(callback) {
     runSequence(
         'lint',
         'test',
-        //'doc',
+        'doc',
         'enclose', //'browserify',
         callback
     );

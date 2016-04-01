@@ -4,22 +4,8 @@
 
 var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)\s*\{\s*\/\*\s*([^]+?)\s*\*\/\s*\s*}$/;
 
-/**
- * @summary Finds string substitution directives that require HTML encoding.
- * @desc Modify to suit.
- * @default %{n}
- * @type {RegExp}
- * @name encodersRegex
- */
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
-/**
- * @summary Finds string substitution directives.
- * @desc Modify to suit.
- * @default ${n}
- * @type {RegExp}
- * @name replacersRegex
- */
 var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
 
 
@@ -84,6 +70,8 @@ function automat(template, replacements/*...*/) {
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
  * @return {HTMLElement} The `el` provided or a new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ *
+ * @memberOf automat
  */
 function replace(template, el, replacements/*...*/) {
     var elOmitted = typeof el !== 'object',
@@ -112,12 +100,13 @@ function replace(template, el, replacements/*...*/) {
  *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
- * @returns {HTMLElement}
+ * @returns {Node[]} - array of the generated nodes (this is an actual Array instance; not an Array-like object)
+ *
+ * @memberOf automat
  */
 function append(template, el, referenceNode, replacements/*...*/) {
     var replacementsStartAt = 3,
-        referenceNodeOmitted = typeof referenceNode !== 'object',  // replacements are never objects
-        childNodes;
+        referenceNodeOmitted = typeof referenceNode !== 'object';  // replacements are never objects
 
     if (referenceNodeOmitted) {
         referenceNode = null;
@@ -125,13 +114,15 @@ function append(template, el, referenceNode, replacements/*...*/) {
     }
 
     replacements = Array.prototype.slice.call(arguments, replacementsStartAt);
-    childNodes = replace.apply(null, [template].concat(replacements)).childNodes;
+    var result = [],
+        div = replace.apply(null, [template].concat(replacements));
 
-    for (var i = 0; i < childNodes.length; ++i) {
-        el.insertBefore(childNodes[i], referenceNode);
+    while (div.childNodes.length) {
+        result.push(div.firstChild);
+        el.insertBefore(div.firstChild, referenceNode); // removes child from div
     }
 
-    return el;
+    return result;
 }
 
 /**
@@ -140,16 +131,31 @@ function append(template, el, referenceNode, replacements/*...*/) {
  * @param {string|function} template - If a function, extract template from comment within.
  *
  * @returns {HTMLElement} A new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ *
+ * @memberOf automat
  */
 function firstChild(template, replacements/*...*/) {
     return replace.apply(null, arguments).firstChild;
 }
 
-// properties:
+/**
+ * @summary Finds string substitution lexemes that require HTML encoding.
+ * @desc Modify to suit.
+ * @default %{n}
+ * @type {RegExp}
+ * @memberOf automat
+ */
 automat.encodersRegex = ENCODERS;
+
+/**
+ * @summary Finds string substitution lexemes.
+ * @desc Modify to suit.
+ * @default ${n}
+ * @type {RegExp}
+ * @memberOf automat
+ */
 automat.replacersRegex = REPLACERS;
 
-// methods:
 automat.format = automat; // if you find using just `automat()` confusing
 automat.replace = replace;
 automat.append = append;
