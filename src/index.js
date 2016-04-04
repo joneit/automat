@@ -2,7 +2,9 @@
 
 'use strict';
 
-var FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT = /^function\s*\w*\(\)\s*\{\s*\/\*\s*([^]+?)\s*\*\/\s*\s*}$/;
+/** @module automat */
+
+var FIRST_MULTILINE_COMMENT = /\/\*\s*([^]+?)\s*\*\//;
 
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
@@ -26,13 +28,15 @@ var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
  * @return {string} The formatted text.
+ *
+ * @memberOf module:automat
  */
 function automat(template, replacements/*...*/) {
     var hasReplacements = arguments.length > 1;
 
     // if `template` is a function, convert it to text
     if (typeof template === 'function') {
-        var format = template.toString().match(FUNCTION_CONSISTING_ENTIRELY_SINGLE_MULTILINE_COMMENT);
+        var format = template.toString().match(FIRST_MULTILINE_COMMENT);
         template = format
             ? format[1] // template function: extract text from comment
             : template.call(this); // non-template function: call it with context and use return value
@@ -71,7 +75,7 @@ function automat(template, replacements/*...*/) {
  *
  * @return {HTMLElement} The `el` provided or a new `<div>...</div>` element, its `innerHTML` set to the formatted text.
  *
- * @memberOf automat
+ * @memberOf module:automat
  */
 function replace(template, el, replacements/*...*/) {
     var elOmitted = typeof el !== 'object',
@@ -100,9 +104,9 @@ function replace(template, el, replacements/*...*/) {
  *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
- * @returns {Node[]} - array of the generated nodes (this is an actual Array instance; not an Array-like object)
+ * @returns {Node[]} Array of the generated nodes (this is an actual Array instance; not an Array-like object).
  *
- * @memberOf automat
+ * @memberOf module:automat
  */
 function append(template, el, referenceNode, replacements/*...*/) {
     var replacementsStartAt = 3,
@@ -132,7 +136,7 @@ function append(template, el, referenceNode, replacements/*...*/) {
  *
  * @returns {HTMLElement} A new `<div>...</div>` element, its `innerHTML` set to the formatted text.
  *
- * @memberOf automat
+ * @memberOf module:automat
  */
 function firstChild(template, replacements/*...*/) {
     return replace.apply(null, arguments).firstChild;
@@ -143,7 +147,7 @@ function firstChild(template, replacements/*...*/) {
  * @desc Modify to suit.
  * @default %{n}
  * @type {RegExp}
- * @memberOf automat
+ * @memberOf module:automat
  */
 automat.encodersRegex = ENCODERS;
 
@@ -152,7 +156,7 @@ automat.encodersRegex = ENCODERS;
  * @desc Modify to suit.
  * @default ${n}
  * @type {RegExp}
- * @memberOf automat
+ * @memberOf module:automat
  */
 automat.replacersRegex = REPLACERS;
 
