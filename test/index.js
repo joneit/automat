@@ -36,8 +36,7 @@ describe('`automat`', function() {
     });
     describe('extracts strings from', function() {
         it('template functions', function() {
-            automat(function(){/*Hello, ${0}!*/}, '<world>').should.equal('Hello, <world>!');
-            automat(function(){ /* Hello, ${0}! */ }, '<world>').should.equal('Hello, <world>!');
+            automat('Hello, ${0}!', '<world>').should.equal('Hello, <world>!');
         });
         it('non-template functions', function() {
             automat(function(){return'Hello, ${0}!'}, '<world>').should.equal('Hello, <world>!');

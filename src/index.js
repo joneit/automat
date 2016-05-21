@@ -4,8 +4,6 @@
 
 /** @module automat */
 
-var FIRST_MULTILINE_COMMENT = /\/\*\s*([^]+?)\s*\*\//;
-
 var ENCODERS = /%\{(\d+)\}/g; // double $$ to encode
 
 var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
@@ -22,8 +20,7 @@ var REPLACERS = /\$\{(.*?)\}/g; // single $ to replace
  *
  * @param {string|function} template - A template to be formatted as described above. Overloads:
  * * A string primitive containing the template.
- * * A "template" function, which is a function consisting entirely of a single multi-line comment containing the template. The template is extracted from the comment.
- * * A (non-template) function to be called with `this` as the calling context. The template is the value returned from this call.
+ * * A function to be called with `this` as the calling context. The template is the value returned from this call.
  *
  * @param {...*} [replacements] - Replacement values for numbered format patterns.
  *
@@ -36,10 +33,7 @@ function automat(template, replacements/*...*/) {
 
     // if `template` is a function, convert it to text
     if (typeof template === 'function') {
-        var format = template.toString().match(FIRST_MULTILINE_COMMENT);
-        template = format
-            ? format[1] // template function: extract text from comment
-            : template.call(this); // non-template function: call it with context and use return value
+        template = template.call(this); // non-template function: call it with context and use return value
     }
 
     if (hasReplacements) {
@@ -130,16 +124,29 @@ function append(template, el, referenceNode, replacements/*...*/) {
 }
 
 /**
- * Use this convenience wrapper to return the first child described in `html`.
+ * Use this convenience wrapper to return the first child node described in `template`.
  *
  * @param {string|function} template - If a function, extract template from comment within.
  *
- * @returns {HTMLElement} A new `<div>...</div>` element, its `innerHTML` set to the formatted text.
+ * @returns {HTMLElement} The first `Node` in your template.
  *
  * @memberOf module:automat
  */
 function firstChild(template, replacements/*...*/) {
     return replace.apply(null, arguments).firstChild;
+}
+
+/**
+ * Use this convenience wrapper to return the first child element described in `template`.
+ *
+ * @param {string|function} template - If a function, extract template from comment within.
+ *
+ * @returns {HTMLElement} The first `HTMLElement` in your template.
+ *
+ * @memberOf module:automat
+ */
+function firstElement(template, replacements/*...*/) {
+    return replace.apply(null, arguments).firstElementChild;
 }
 
 /**
@@ -164,5 +171,6 @@ automat.format = automat; // if you find using just `automat()` confusing
 automat.replace = replace;
 automat.append = append;
 automat.firstChild = firstChild;
+automat.firstElement = firstElement;
 
 module.exports = automat;
